@@ -1,55 +1,79 @@
 import sqlite3
 import math
 import sys
-
+import time
 
 import PositionRefInfo as pri
 
 dbpath = "addressLatLon.db"
 
-def searchNearest(qlatDeg, qlonDeg):
-    qlatRad = math.radians(qlatDeg)
-    qlonRad = math.radians(qlonDeg)
-    sinqLat = math.sin(qlatRad)
-    sinqLon = math.sin(qlonRad)
-    cosqLat = math.cos(qlatRad)
-    cosqLon = math.cos(qlonRad)
+class AddressLatLonDB:
 
-    calcDistCos = "(sinLat * {0} + cosLat * {1} * (cosLon * {2} + sinLon * {3}))".format(sinqLat, cosqLat, cosqLon, sinqLon)
+    def connect(self, path):
+        self.conn = sqlite3.connect(dbpath)
 
-    selectCommand = \
-    "select prefCode, prefName, cityCode, cityName, " \
-    "sectionCode, sectionName, latitudeDeg, longitudeDeg, "\
-    "originalCode, sectionClassCode, "\
-    "{0} as distCos from AddLatLon "\
-    "order by distCos DESC limit 5".format(calcDistCos)
+    def disconnect(self):
+        self.conn.close()
 
-    conn = sqlite3.connect(dbpath)
-    cur = conn.cursor()
+    def searchNearest(self, qlatDeg, qlonDeg):
+        qlatRad = math.radians(qlatDeg)
+        qlonRad = math.radians(qlonDeg)
+        sinqLat = math.sin(qlatRad)
+        sinqLon = math.sin(qlonRad)
+        cosqLat = math.cos(qlatRad)
+        cosqLon = math.cos(qlonRad)
 
-    cur.execute(selectCommand)
-    posRefInfoList = []
-    distCosList = []
+        calcDistCos = "(sinLat * {0} + cosLat * {1} * (cosLon * {2} + sinLon * {3}))".format(sinqLat, cosqLat, cosqLon, sinqLon)
 
-    for row in cur:
-        posRefInfo = pri.PositionRefInfo(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
-        posRefInfoList.append(posRefInfo)
-        distCosList.append(row[10])
+        degRange = 0.2
 
-    cur.close()
-    conn.close()
+        selectCommand = \
+        "select prefCode, prefName, cityCode, cityName, " \
+        "sectionCode, sectionName, latitudeDeg, longitudeDeg, "\
+        "originalCode, sectionClassCode, "\
+        "{0} as distCos from AddLatLon "\
+        "where latitudeDeg between {1} and {2} "\
+        "and longitudeDeg between {3} and {4} "\
+        "order by distCos DESC limit 5".format(calcDistCos, qlatDeg-degRange, qlatDeg+degRange, qlonDeg-degRange, qlonDeg+degRange)
 
-    distKm = 6371.0*math.acos(distCosList[0])
+        
+        cur = self.conn.cursor()
 
-    return posRefInfoList[0], distKm
+        cur.execute(selectCommand)
+        posRefInfoList = []
+        distCosList = []
+
+        for row in cur:
+            posRefInfo = pri.PositionRefInfo(row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8], row[9])
+            posRefInfoList.append(posRefInfo)
+            distCosList.append(row[10])
+
+        cur.close()
+
+        distKm = 6371.0*math.acos(distCosList[0])
+
+        return posRefInfoList[0], distKm
     
-args = sys.argv
 
-latDeg = float(args[1])
-lonDeg = float(args[2])
 
-posRefInfo, distKm = searchNearest(latDeg, lonDeg)
+if __name__ == '__main__':
 
-address = "{0} {1} {2}".format(posRefInfo.prefName, posRefInfo.cityName, posRefInfo.sectionName)
-print(address)
-print(distKm)
+    args = sys.argv
+    if len(args) != 3:
+        sys.exit()
+    
+    lat = float(args[1])
+    lon = float(args[2])
+
+    db = AddressLatLonDB()
+    db.connect(dbpath)
+
+    posRefInfo, distKm = db.searchNearest(lat, lon)
+
+    db.disconnect()
+    
+    address = "{0} {1} {2}".format(posRefInfo.prefName, posRefInfo.cityName, posRefInfo.sectionName)
+    print("address: {0}".format(address))
+    print("distance(km): {0}".format(distKm))
+
+    db.disconnect()
