@@ -5,32 +5,34 @@
 ## Description
 - Python実装
 - Sqlite3によるDB構築
+- [国土交通省位置参照情報ダウンロードサービス](http://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi)から、位置参照情報データを自動ダウンロード
+    - Selenium+ChromeDriverによるブラウザGUI自動操作
 
 ## How to use
 
 ### 前準備
 
-- [国土交通省位置参照情報ダウンロードサービス](http://nlftp.mlit.go.jp/cgi-bin/isj/dls/_choose_method.cgi)からデータをダウンロードする
-    - 「都道府県単位」をクリック
-    - 全ての都道府県を選択」にチェック
-    - 「大字・町丁目レベルのみ」にチェック 
-    - データ整備年度から「平成29年」を選択
-    - 「選択」をクリック
-    - 「全ての大字・町丁目レベルを選択」にチェック
-    - 「選択」をクリック
-    - 利用約款を読み、同意であれば「同意する」をクリック
-    - 表示されているすべてのダウンロードボタンをクリックして、データをダウンロードする
+- Seleniumをインストール
 
-- ダウンロードしたzipファイルをdataフォルダ内に展開する
+        $ pip install selenium
+
+- ChromeDriverをダウンロードして、任意のフォルダに配置
+
+- CreateAddressLatLonDB.shの変数chromeDriverPathに、ChromeDriverのパスを記述（XXXXの部分を書き換え）
+    
 
 ### DB構築
 
-`$python3 ConvCsv2Sqlite.py`
+    $ bash CreateAddressLatLonDB.sh
+
+- 位置参照情報データファイル自動ダウンロード
+- zipファイル自動展開
+- SQLiteデータベースファイル構築
 
 ### 都道府県名・市区町村名・大字町丁目名を取得
 
 例：東京駅前
 
-    $ python3 NearestSection.py 35.680178 139.769491
-    東京都 千代田区 丸の内一丁目
-    0.25767395168844676
+    $ python NearestSection.py 35.680178 139.769491
+    address: 東京都 千代田区 丸の内一丁目
+    distance(km): 0.25767395168844676
