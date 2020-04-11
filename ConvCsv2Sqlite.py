@@ -1,6 +1,9 @@
 import sqlite3
 import csv
 import math
+import glob
+import re
+import os
 
 import PositionRefInfo as pri
 
@@ -99,8 +102,9 @@ db = DBAddressLatLon()
 
 db.CreateNewTable(dbpath)
 
-for i in range(1, 48):
-    zerofillNo = str(i).zfill(2)
-    csvpath = "./data/{0}000-11.0b/{0}_2017.csv".format(zerofillNo)
-    print(csvpath)
-    db.AddCSV(dbpath, csvpath)
+files_csv = glob.glob('./data/*/*.csv')
+files_csv.sort()
+
+for f in files_csv:
+    print(f)
+    db.AddCSV(dbpath, f)
